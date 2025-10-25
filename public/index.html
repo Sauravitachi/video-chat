@@ -1,0 +1,338 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Video Chat</title>
+  <style>
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+    }
+
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, sans-serif;
+      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+      min-height: 100vh;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      padding: 20px;
+    }
+
+    .container {
+      width: 100%;
+      max-width: 1200px;
+      background: rgba(255, 255, 255, 0.95);
+      border-radius: 20px;
+      box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
+      overflow: hidden;
+    }
+
+    .header {
+      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+      color: white;
+      padding: 20px;
+      text-align: center;
+    }
+
+    .header h1 {
+      font-size: 24px;
+      font-weight: 600;
+      margin-bottom: 5px;
+    }
+
+    .header p {
+      font-size: 14px;
+      opacity: 0.9;
+    }
+
+    .video-container {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 15px;
+      padding: 20px;
+      background: #1a1a2e;
+    }
+
+    .video-wrapper {
+      position: relative;
+      border-radius: 12px;
+      overflow: hidden;
+      background: #000;
+      aspect-ratio: 4/3;
+    }
+
+    .video-wrapper video {
+      width: 100%;
+      height: 100%;
+      object-fit: cover;
+      display: block;
+    }
+
+    .video-label {
+      position: absolute;
+      top: 10px;
+      left: 10px;
+      background: rgba(0, 0, 0, 0.7);
+      color: white;
+      padding: 5px 12px;
+      border-radius: 20px;
+      font-size: 12px;
+      font-weight: 500;
+      backdrop-filter: blur(10px);
+    }
+
+    .status-indicator {
+      position: absolute;
+      top: 10px;
+      right: 10px;
+      width: 10px;
+      height: 10px;
+      border-radius: 50%;
+      background: #ef4444;
+      box-shadow: 0 0 10px rgba(239, 68, 68, 0.5);
+    }
+
+    .status-indicator.active {
+      background: #22c55e;
+      box-shadow: 0 0 10px rgba(34, 197, 94, 0.5);
+    }
+
+    .chat-section {
+      padding: 20px;
+      background: white;
+    }
+
+    #chat {
+      height: 200px;
+      overflow-y: auto;
+      border: 2px solid #e5e7eb;
+      border-radius: 12px;
+      padding: 15px;
+      margin-bottom: 15px;
+      background: #f9fafb;
+      scroll-behavior: smooth;
+    }
+
+    #chat::-webkit-scrollbar {
+      width: 6px;
+    }
+
+    #chat::-webkit-scrollbar-track {
+      background: #f1f1f1;
+      border-radius: 10px;
+    }
+
+    #chat::-webkit-scrollbar-thumb {
+      background: #667eea;
+      border-radius: 10px;
+    }
+
+    .message {
+      margin-bottom: 10px;
+      padding: 8px 12px;
+      border-radius: 8px;
+      font-size: 14px;
+      line-height: 1.4;
+      max-width: 80%;
+      word-wrap: break-word;
+    }
+
+    .message.sent {
+      background: #667eea;
+      color: white;
+      margin-left: auto;
+      text-align: right;
+    }
+
+    .message.received {
+      background: #e5e7eb;
+      color: #1f2937;
+    }
+
+    .message.system {
+      background: #fef3c7;
+      color: #92400e;
+      text-align: center;
+      margin: 10px auto;
+      font-size: 13px;
+      max-width: 100%;
+    }
+
+    .input-container {
+      display: flex;
+      gap: 10px;
+      margin-bottom: 15px;
+    }
+
+    #msgBox {
+      flex: 1;
+      padding: 12px 16px;
+      border: 2px solid #e5e7eb;
+      border-radius: 10px;
+      font-size: 14px;
+      transition: border-color 0.3s;
+      outline: none;
+    }
+
+    #msgBox:focus {
+      border-color: #667eea;
+    }
+
+    button {
+      padding: 12px 24px;
+      border: none;
+      border-radius: 10px;
+      font-size: 14px;
+      font-weight: 600;
+      cursor: pointer;
+      transition: all 0.3s;
+      outline: none;
+    }
+
+    #sendBtn {
+      background: #667eea;
+      color: white;
+    }
+
+    #sendBtn:hover {
+      background: #5568d3;
+      transform: translateY(-1px);
+    }
+
+    #sendBtn:active {
+      transform: translateY(0);
+    }
+
+    .controls {
+      display: flex;
+      gap: 10px;
+      justify-content: center;
+    }
+
+    #startBtn {
+      background: #22c55e;
+      color: white;
+      flex: 1;
+      max-width: 200px;
+    }
+
+    #startBtn:hover {
+      background: #16a34a;
+    }
+
+    #nextBtn {
+      background: #f59e0b;
+      color: white;
+      flex: 1;
+      max-width: 200px;
+    }
+
+    #nextBtn:hover {
+      background: #d97706;
+    }
+
+    #nextBtn:disabled,
+    #sendBtn:disabled {
+      opacity: 0.5;
+      cursor: not-allowed;
+      transform: none !important;
+    }
+
+    @media (max-width: 768px) {
+      .video-container {
+        grid-template-columns: 1fr;
+        padding: 15px;
+      }
+
+      .header h1 {
+        font-size: 20px;
+      }
+
+      #chat {
+        height: 150px;
+      }
+
+      .controls {
+        flex-direction: column;
+      }
+
+      #startBtn,
+      #nextBtn {
+        max-width: 100%;
+      }
+
+      .message {
+        max-width: 90%;
+        font-size: 13px;
+      }
+    }
+
+    @media (max-width: 480px) {
+      body {
+        padding: 10px;
+      }
+
+      .container {
+        border-radius: 15px;
+      }
+
+      .header {
+        padding: 15px;
+      }
+
+      .chat-section {
+        padding: 15px;
+      }
+
+      .input-container {
+        flex-direction: column;
+      }
+
+      #sendBtn {
+        width: 100%;
+      }
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <div class="header">
+      <h1>🎥 Video Chat</h1>
+      <p>Connect with random people around the world</p>
+    </div>
+
+    <div class="video-container">
+      <div class="video-wrapper">
+        <video id="localVideo" autoplay playsinline muted></video>
+        <div class="video-label">You</div>
+        <div class="status-indicator" id="localStatus"></div>
+      </div>
+      <div class="video-wrapper">
+        <video id="remoteVideo" autoplay playsinline></video>
+        <div class="video-label">Stranger</div>
+        <div class="status-indicator" id="remoteStatus"></div>
+      </div>
+    </div>
+
+    <div class="chat-section">
+      <div id="chat"></div>
+      
+      <div class="input-container">
+        <input type="text" id="msgBox" placeholder="Type your message..." />
+        <button id="sendBtn">Send</button>
+      </div>
+
+      <div class="controls">
+        <button id="startBtn">Start Chat</button>
+        <button id="nextBtn">Next Stranger</button>
+      </div>
+    </div>
+  </div>
+
+  <script src="https://cdn.socket.io/4.7.5/socket.io.min.js"></script>
+  <script src="script.js"></script>
+</body>
+</html>
