@@ -1,5 +1,6 @@
 const socket = io();
 let partnerId = null;
+let localStream = null;
 
 const pc = new RTCPeerConnection({
   iceServers: [
@@ -16,6 +17,8 @@ const localVideo = document.getElementById("localVideo");
 const remoteVideo = document.getElementById("remoteVideo");
 const chat = document.getElementById("chat");
 const msgBox = document.getElementById("msgBox");
+const toggleMicBtn = document.getElementById("toggleMic");
+const toggleCamBtn = document.getElementById("toggleCam");
 
 async function startMedia() {
   if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
@@ -24,19 +27,21 @@ async function startMedia() {
   }
 
   try {
-    const stream = await navigator.mediaDevices.getUserMedia({ video: true, audio: true });
-    stream.getTracks().forEach((track) => pc.addTrack(track, stream));
-    localVideo.srcObject = stream;
+    localStream = await navigator.mediaDevices.getUserMedia({ video: true, audio: true });
+    localStream.getTracks().forEach((track) => pc.addTrack(track, localStream));
+    localVideo.srcObject = localStream;
     localVideo.muted = true;
     localVideo.play();
+    localVideo.style.transform = "scaleX(-1)"; // mirror local feed
 
     pc.ontrack = (event) => {
-      console.log("📡 Remote track received");
-      remoteVideo.srcObject = event.streams[0];
-      remoteVideo.onloadedmetadata = () => {
-        remoteVideo.play().catch((err) => console.warn("⚠️ Autoplay blocked:", err));
-      };
-    };
+  remoteVideo.srcObject = event.streams[0];
+  remoteVideo.onloadedmetadata = () => {
+    remoteVideo.play().catch((err) => console.warn("⚠️ Autoplay blocked:", err));
+  };
+  remoteVideo.style.transform = "scaleX(-1)"; // 👈 mirror stranger's video too
+};
+
 
     pc.onicecandidate = (event) => {
       if (event.candidate && partnerId) {
@@ -72,6 +77,12 @@ socket.on("paired", async ({ peerId }) => {
   }
 });
 
+document.getElementById("mirrorBtn").onclick = () => {
+  const mirrored = localVideo.style.transform === "scaleX(-1)";
+  localVideo.style.transform = mirrored ? "scaleX(1)" : "scaleX(-1)";
+  remoteVideo.style.transform = mirrored ? "scaleX(1)" : "scaleX(-1)";
+};
+
 socket.on("signal", async ({ from, data }) => {
   partnerId = from;
 
@@ -92,6 +103,32 @@ socket.on("signal", async ({ from, data }) => {
     }
   }
 });
+
+
+document.getElementById("startBtn").onclick = async () => {
+  await startMedia();
+
+  const country = document.getElementById("country").value;
+  const interests = document.getElementById("interests").value
+    .split(",")
+    .map((i) => i.trim().toLowerCase())
+    .filter(Boolean);
+
+  socket.emit("join_queue", { country, interests });
+};
+
+
+async function detectCountry() {
+  try {
+    const res = await fetch("https://ipapi.co/json");
+    const data = await res.json();
+    document.getElementById("country").value = data.country_code;
+  } catch (err) {
+    console.log("🌍 Country detect failed:", err);
+  }
+}
+detectCountry();
+
 
 /* ===== Chat & Disconnect ===== */
 socket.on("message", ({ from, message }) => log(`👤 ${from}: ${message}`));
@@ -119,6 +156,27 @@ document.getElementById("sendBtn").onclick = () => {
     socket.emit("message", { to: partnerId, message: text });
     log(`🧍 You: ${text}`);
     msgBox.value = "";
+  }
+};
+
+/* ===== Media Controls ===== */
+toggleMicBtn.onclick = () => {
+  if (localStream) {
+    const audioTrack = localStream.getAudioTracks()[0];
+    if (audioTrack) {
+      audioTrack.enabled = !audioTrack.enabled;
+      toggleMicBtn.textContent = audioTrack.enabled ? "🎤 Mute" : "🎤 Unmute";
+    }
+  }
+};
+
+toggleCamBtn.onclick = () => {
+  if (localStream) {
+    const videoTrack = localStream.getVideoTracks()[0];
+    if (videoTrack) {
+      videoTrack.enabled = !videoTrack.enabled;
+      toggleCamBtn.textContent = videoTrack.enabled ? "🎥 Stop Camera" : "🎥 Start Camera";
+    }
   }
 };
 

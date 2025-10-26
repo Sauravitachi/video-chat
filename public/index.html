@@ -83,7 +83,11 @@
       font-weight: 500;
       backdrop-filter: blur(10px);
     }
-
+    #localVideo {
+        transform: scaleX(-1);
+        -webkit-transform: scaleX(-1);
+        mirror: always;
+      }
     .status-indicator {
       position: absolute;
       top: 10px;
@@ -325,12 +329,21 @@
         <button id="sendBtn">Send</button>
       </div>
 
+      <div class="input-container">
+        <input type="text" id="country" placeholder="Your country code" readonly style="background-color: #f3f4f6;" />
+        <input type="text" id="interests" placeholder="Interests (comma-separated)" />
+      </div>
+
       <div class="controls">
         <button id="startBtn">Start Chat</button>
         <button id="nextBtn">Next Stranger</button>
+        <button id="mirrorBtn">Toggle Mirror</button>
+        <button id="toggleMic">🎤 Mute</button>
+        <button id="toggleCam">🎥 Stop Camera</button>
       </div>
     </div>
   </div>
+
 
   <script src="https://cdn.socket.io/4.7.5/socket.io.min.js"></script>
   <script src="script.js"></script>
